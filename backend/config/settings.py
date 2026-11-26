@@ -16,6 +16,7 @@ INSTALLED_APPS = [
     'rest_framework', 'drf_spectacular', 'django_filters', 'apps.accounts',
 ]
 MIDDLEWARE = [
+    'config.middleware.NoStoreMiddleware',
     'django.middleware.security.SecurityMiddleware', 'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware', 'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware', 'django.contrib.messages.middleware.MessageMiddleware',
@@ -70,3 +71,4 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS = not DEBUG
 SECURE_HSTS_PRELOAD = not DEBUG
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
+CSRF_FAILURE_VIEW = 'config.errors.csrf_failure'
