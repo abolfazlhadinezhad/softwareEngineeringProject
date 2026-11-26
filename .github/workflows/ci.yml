@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main, '**']
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: university_support
+          MYSQL_USER: support_app
+          MYSQL_PASSWORD: ci-database-password
+          MYSQL_ROOT_PASSWORD: ci-root-password
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -u root -pci-root-password"
+          --health-interval=5s --health-timeout=5s --health-retries=30
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      DJANGO_SECRET_KEY: ci-only-secret-that-is-long-enough-for-tests
+      DJANGO_DEBUG: 'true'
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1
+      MYSQL_DATABASE: university_support
+      MYSQL_USER: support_app
+      MYSQL_PASSWORD: ci-database-password
+      MYSQL_HOST: 127.0.0.1
+      MYSQL_PORT: '3306'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install --index-url https://pypi.org/simple -r requirements.txt
+      - run: python manage.py migrate --noinput
+      - run: python manage.py check
+      - run: python manage.py test --noinput
+      - run: python manage.py spectacular --validate --file /tmp/schema.yml
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npm test
+      - run: npm run build
