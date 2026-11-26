@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.db import connection
 from django.http import JsonResponse
-from django.urls import path
+from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
 
@@ -15,6 +15,7 @@ def health(request):
 
 
 urlpatterns = [
+    path('api/auth/', include('apps.accounts.urls')),
     path('admin/', admin.site.urls),
     path('api/health/', health),
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
