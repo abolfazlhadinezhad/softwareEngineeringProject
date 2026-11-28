@@ -4,6 +4,7 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 
 from .models import Category, Ticket, TicketEvent
+from apps.portal.models import Department, Membership
 
 User = get_user_model()
 
@@ -14,7 +15,9 @@ class TicketApiTests(TestCase):
         self.other_student = User.objects.create_user('other', password='test-only-pass')
         self.support = User.objects.create_user('support', password='test-only-pass', role=User.Role.SUPPORT)
         self.admin = User.objects.create_superuser('admin', password='test-only-pass')
-        self.category = Category.objects.create(name='Academic support')
+        self.department = Department.objects.create(name='آموزش آزمایشی', slug='education-test')
+        Membership.objects.create(user=self.support, department=self.department)
+        self.category = Category.objects.create(name='Academic support', department=self.department)
         self.client = APIClient(enforce_csrf_checks=True)
 
     def login(self, user):
@@ -73,12 +76,60 @@ class TicketApiTests(TestCase):
         self.login(self.support)
         self.assertEqual(self.client.post(f'/api/tickets/{ticket_id}/claim/', {}, format='json').status_code, 200)
         second = User.objects.create_user('support-two', password='test-only-pass', role=User.Role.SUPPORT)
+        Membership.objects.create(user=second, department=self.department)
         self.login(second)
         self.assertEqual(self.client.post(f'/api/tickets/{ticket_id}/claim/', {}, format='json').status_code, 409)
         self.login(self.support)
-        self.assertEqual(self.client.post(f'/api/tickets/{ticket_id}/close/', {}, format='json').status_code, 200)
+        self.assertEqual(self.client.post(f'/api/tickets/{ticket_id}/status/', {'status': 'resolved', 'reason': 'Resolved in test'}, format='json').status_code, 200)
+        self.assertEqual(self.client.post(f'/api/tickets/{ticket_id}/close/', {'reason': 'Confirmed'}, format='json').status_code, 200)
         self.assertEqual(self.client.post(f'/api/tickets/{ticket_id}/reply/', {'body': 'Late reply'}, format='json').status_code, 400)
-        self.assertEqual(self.client.post(f'/api/tickets/{ticket_id}/reopen/', {}, format='json').status_code, 200)
+        self.assertEqual(self.client.post(f'/api/tickets/{ticket_id}/reopen/', {'reason': 'Issue persists'}, format='json').status_code, 200)
+
+    def test_staff_department_isolation_and_sensitive_admin_denial(self):
+        ticket_id = self.create().data['id']
+        outsider = User.objects.create_user('outsider', role='support')
+        self.login(outsider)
+        self.assertEqual(self.client.get('/api/tickets/').data['count'], 0)
+        self.assertEqual(self.client.get(f'/api/tickets/{ticket_id}/').status_code, 404)
+        Ticket.objects.filter(pk=ticket_id).update(confidentiality='confidential')
+        self.login(self.admin)
+        self.assertEqual(self.client.get(f'/api/tickets/{ticket_id}/').status_code, 404)
+
+    def test_internal_note_never_appears_for_student(self):
+        ticket_id = self.create().data['id']
+        self.login(self.support)
+        response = self.client.post(f'/api/tickets/{ticket_id}/note/', {'body': 'INTERNAL-SECRET'}, format='json')
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertIn('INTERNAL-SECRET', str(self.client.get(f'/api/tickets/{ticket_id}/').data))
+        self.login(self.student)
+        data = self.client.get(f'/api/tickets/{ticket_id}/').data
+        self.assertEqual(data['internal_notes'], [])
+        self.assertNotIn('INTERNAL-SECRET', str(data))
+        self.assertNotIn('یادداشت داخلی', str(data))
+
+    def test_priority_is_policy_controlled_and_invalid_transition_rejected(self):
+        ticket_id = self.create().data['id']
+        self.assertEqual(Ticket.objects.get(pk=ticket_id).priority, 'normal')
+        self.login(self.support)
+        response = self.client.post(f'/api/tickets/{ticket_id}/status/', {'status': 'closed', 'reason': 'Bypass'}, format='json')
+        self.assertEqual(response.status_code, 400)
+
+    def test_transfer_preserves_history_deadline_and_revokes_old_scope(self):
+        ticket_id = self.create().data['id']
+        member = Membership.objects.get(user=self.support)
+        member.is_manager = True
+        member.save()
+        target = Department.objects.create(name='واحد دوم', slug='target')
+        category = Category.objects.create(name='Target', department=target)
+        self.login(self.support)
+        response = self.client.post(f'/api/tickets/{ticket_id}/transfer/', {'department': target.pk, 'category': category.pk, 'reason': 'Correct routing'}, format='json')
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(self.client.get(f'/api/tickets/{ticket_id}/').status_code, 404)
+        self.login(self.student)
+        response = self.client.get(f'/api/tickets/{ticket_id}/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['department'], target.pk)
+        self.assertGreaterEqual(len(response.data['events']), 2)
 
     def test_student_cannot_mutate_staff_status_or_other_ticket(self):
         created = self.create()

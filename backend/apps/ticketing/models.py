@@ -1,3 +1,5 @@
+import uuid
+
 from django.conf import settings
 from django.db import models
 
@@ -5,6 +7,11 @@ from django.db import models
 class Category(models.Model):
     name = models.CharField(max_length=100, unique=True)
     is_active = models.BooleanField(default=True)
+    department = models.ForeignKey('portal.Department', on_delete=models.PROTECT, null=True, blank=True, related_name='categories')
+    parent = models.ForeignKey('self', on_delete=models.PROTECT, null=True, blank=True)
+    form = models.ForeignKey('portal.RequestForm', on_delete=models.PROTECT, null=True, blank=True)
+    sla_policy = models.ForeignKey('portal.SLAPolicy', on_delete=models.PROTECT, null=True, blank=True)
+    default_priority = models.CharField(max_length=10, default='normal', choices=[('low', 'Low'), ('normal', 'Normal'), ('high', 'High')])
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -29,6 +36,18 @@ class Ticket(models.Model):
         HIGH = 'high', 'High'
 
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='created_tickets')
+    tracking_number = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    department = models.ForeignKey('portal.Department', on_delete=models.PROTECT, null=True, blank=True, related_name='tickets')
+    confidentiality = models.CharField(max_length=20, default='normal', choices=[('normal', 'Normal'), ('restricted', 'Restricted'), ('confidential', 'Confidential')])
+    form_snapshot = models.JSONField(default=dict)
+    form_responses = models.JSONField(default=dict)
+    first_response_at = models.DateTimeField(null=True, blank=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    response_due_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    resolution_due_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    sla_paused_at = models.DateTimeField(null=True, blank=True)
+    resolution_summary = models.TextField(blank=True)
+    version = models.PositiveIntegerField(default=1)
     category = models.ForeignKey(Category, on_delete=models.PROTECT, related_name='tickets')
     assignee = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_tickets')
     title = models.CharField(max_length=160)
@@ -44,6 +63,8 @@ class Ticket(models.Model):
             models.Index(fields=('created_by', '-updated_at'), name='ticket_creator_updated_idx'),
             models.Index(fields=('status', '-updated_at'), name='ticket_status_updated_idx'),
             models.Index(fields=('category', '-updated_at'), name='ticket_category_updated_idx'),
+            models.Index(fields=('department', 'status', '-updated_at'), name='ticket_department_status_idx'),
+            models.Index(fields=('assignee', 'status'), name='ticket_assignee_status_idx'),
         ]
         constraints = [
             models.CheckConstraint(condition=models.Q(status__in=['open', 'in_progress', 'waiting_student', 'resolved', 'closed']), name='valid_ticket_status'),
@@ -78,7 +99,18 @@ class TicketEvent(models.Model):
     actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='ticket_events')
     action = models.CharField(max_length=20, choices=Action.choices)
     detail = models.CharField(max_length=255, blank=True)
+    is_internal = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ('-created_at', '-id')
+
+
+class InternalNote(models.Model):
+    ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name='internal_notes')
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    body = models.TextField(max_length=10000)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at', 'id']
