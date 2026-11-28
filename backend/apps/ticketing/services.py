@@ -5,7 +5,7 @@ from django.db.models import Q
 from django.utils import timezone
 from rest_framework.exceptions import APIException, PermissionDenied, ValidationError
 
-from apps.portal.models import AccessGrant, Notification, SiteSettings
+from apps.portal.models import AccessGrant, Notification, Profile, SiteSettings
 from apps.portal.permissions import audit, department_ids, has_permission, require
 from .models import InternalNote, Reply, Ticket, TicketEvent
 
@@ -55,7 +55,8 @@ def _notify(ticket, title, *, internal=False):
     recipients = [] if internal else [ticket.created_by_id]
     if ticket.assignee_id and visible_tickets(ticket.assignee).filter(pk=ticket.pk).exists():
         recipients.append(ticket.assignee_id)
-    Notification.objects.bulk_create([Notification(user_id=pk, ticket=ticket, title=title) for pk in set(recipients)])
+    disabled = set(Profile.objects.filter(user_id__in=recipients, notification_preferences__in_app=False).values_list('user_id', flat=True))
+    Notification.objects.bulk_create([Notification(user_id=pk, ticket=ticket, title=title) for pk in set(recipients) - disabled])
 
 
 def _lock(ticket, actor, permission):

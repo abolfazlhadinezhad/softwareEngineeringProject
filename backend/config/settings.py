@@ -89,3 +89,6 @@ CELERY_BEAT_SCHEDULE = {'monitor-service-levels': {'task': 'apps.portal.tasks.mo
 DATA_UPLOAD_MAX_MEMORY_SIZE = 2 * 1024 * 1024
 MEDIA_ROOT = Path(os.environ.get('PRIVATE_MEDIA_ROOT', '/app/private-media'))
 AUTH_PASSWORD_VALIDATORS[1]['OPTIONS'] = {'min_length': 10}
+if os.environ.get('TRUST_PROXY_TLS', '').lower() == 'true':
+    # Enable only when Gunicorn is reachable exclusively through the trusted gateway.
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')

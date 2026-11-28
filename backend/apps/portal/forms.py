@@ -12,13 +12,16 @@ def validate_fields(fields):
     for field in fields:
         if not isinstance(field, dict) or field.get('type') not in TYPES or not isinstance(field.get('key'), str) or not field['key'].isidentifier():
             raise ValidationError({'fields': 'نوع یا شناسه فیلد معتبر نیست.'})
-        if field['key'] in keys or not field.get('label') or any(word in field['key'].lower() for word in ('password', 'secret', 'token')):
+        if field['key'] in keys or not isinstance(field.get('label'), str) or not field.get('label') or any(word in (field['key'] + ' ' + field.get('label', '')).lower() for word in ('password', 'secret', 'token', 'رمز', 'گذرواژه')):
             raise ValidationError({'fields': 'شناسه تکراری یا دریافت رمز و اطلاعات محرمانه مجاز نیست.'})
         keys.add(field['key'])
         if field['type'] in ('select', 'multiselect', 'radio') and (not isinstance(field.get('options'), list) or not field['options'] or not all(isinstance(x, str) for x in field['options'])):
             raise ValidationError({'fields': 'گزینه‌های فیلد را مشخص کنید.'})
-        if field.get('visible_when') and field['visible_when'].get('field') not in keys - {field['key']}:
+        if field.get('visible_when') and (not isinstance(field['visible_when'], dict) or field['visible_when'].get('field') not in keys - {field['key']}):
             raise ValidationError({'fields': 'شرط نمایش باید به فیلد قبلی اشاره کند.'})
+        for rule in ('min', 'max', 'max_length'):
+            if rule in field and (type(field[rule]) not in (int, float) or rule == 'max_length' and not 1 <= field[rule] <= 10000):
+                raise ValidationError({'fields': 'محدوده اعتبارسنجی معتبر نیست.'})
     return fields
 
 

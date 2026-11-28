@@ -2,6 +2,8 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from . import views
 from . import identity
+from .analytics import DashboardView
+from .operations import SettingsView, SystemHealthView, TicketExportView
 
 router = DefaultRouter()
 for prefix, view in [
@@ -14,6 +16,10 @@ for prefix, view in [
     router.register('manage/' + prefix, view, basename='manage-' + prefix)
 
 urlpatterns = [
+    path('manage/settings/', SettingsView.as_view()),
+    path('manage/health/', SystemHealthView.as_view()),
+    path('reports/tickets.csv', TicketExportView.as_view()),
+    path('dashboard/', DashboardView.as_view()),
     path('auth/activate/', identity.ActivationView.as_view()),
     path('profile/', identity.ProfileView.as_view()),
     path('auth/password/', identity.PasswordView.as_view()),

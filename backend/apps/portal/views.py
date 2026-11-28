@@ -11,6 +11,7 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from drf_spectacular.utils import OpenApiTypes, extend_schema
 
 from apps.ticketing.models import Category
 from apps.ticketing.serializers import CategorySerializer
@@ -22,10 +23,14 @@ from .serializers import AnnouncementSerializer, ArticleSerializer, CalendarSeri
 from .serializers import PublicArticleSerializer, PublicDepartmentSerializer
 
 
+@extend_schema(responses=OpenApiTypes.OBJECT)
 class PublicView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request, resource='home', pk=None):
+        if resource not in ('home', 'departments', 'articles', 'faqs', 'announcements'):
+            from rest_framework.exceptions import NotFound
+            raise NotFound('منبع مورد نظر پیدا نشد.')
         now = timezone.now()
         departments = Department.objects.filter(is_active=True, is_public=True)
         articles = Article.objects.filter(status='published', is_public=True, published_at__lte=now).filter(Q(department__isnull=True) | Q(department__is_active=True, department__is_public=True))
@@ -80,6 +85,13 @@ class ManagedViewSet(viewsets.ModelViewSet):
     required_permission = 'department.manage'
     http_method_names = ['get', 'post', 'put', 'patch', 'head', 'options']
     department_field = 'department_id'
+
+    @extend_schema(responses=OpenApiTypes.OBJECT)
+    @action(detail=False, methods=['get'], url_path='form-metadata')
+    def form_metadata(self, request):
+        if not has_permission(request.user, self.required_permission) and not department_ids(request.user, self.required_permission):
+            require(request.user, self.required_permission)
+        return Response({'actions': {'POST': self.metadata_class().get_serializer_info(self.get_serializer())}})
 
     def get_queryset(self):
         user = self.request.user
@@ -146,6 +158,7 @@ FAQViewSet = managed_view('FAQViewSet', FAQ, FAQSerializer, 'knowledge_base.publ
 AnnouncementViewSet = managed_view('AnnouncementViewSet', Announcement, AnnouncementSerializer, 'knowledge_base.publish')
 
 
+@extend_schema(request=OpenApiTypes.OBJECT, responses=OpenApiTypes.OBJECT)
 class NotificationView(APIView):
     def get(self, request):
         accessible = visible_tickets(request.user).values('pk')
@@ -168,6 +181,7 @@ class FeedbackInput(serializers.Serializer):
     comment = serializers.CharField(max_length=2000, allow_blank=True, default='')
 
 
+@extend_schema(request=FeedbackInput, responses=OpenApiTypes.OBJECT)
 class FeedbackView(APIView):
     @transaction.atomic
     def post(self, request, pk):
@@ -180,12 +194,14 @@ class FeedbackView(APIView):
         return Response({'success': True}, status=201)
 
 
+@extend_schema(responses=OpenApiTypes.OBJECT)
 class PermissionCatalogView(APIView):
     def get(self, request):
         require(request.user, 'role.manage')
         return Response(PERMISSIONS)
 
 
+@extend_schema(responses=OpenApiTypes.OBJECT)
 class AuditView(APIView):
     def get(self, request):
         require(request.user, 'audit.view')

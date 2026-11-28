@@ -19,6 +19,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
+from drf_spectacular.utils import OpenApiTypes, extend_schema
 
 from .models import Activation, ImportBatch, Profile
 from .permissions import audit, require
@@ -41,6 +42,7 @@ class ActivationInput(serializers.Serializer):
 
 
 @method_decorator(csrf_protect, name='dispatch')
+@extend_schema(request=ActivationInput, responses=OpenApiTypes.OBJECT)
 class ActivationView(APIView):
     permission_classes = [AllowAny]
     throttle_classes = [ScopedRateThrottle]
@@ -69,6 +71,7 @@ class ActivationView(APIView):
         return Response({'success': True})
 
 
+@extend_schema(request=None, responses=OpenApiTypes.OBJECT)
 class IssueActivationView(APIView):
     @transaction.atomic
     def post(self, request, pk):
@@ -78,6 +81,7 @@ class IssueActivationView(APIView):
         return Response({'token': issue_activation(request.user, user), 'expires_in_hours': 24})
 
 
+@extend_schema(request=OpenApiTypes.OBJECT, responses=OpenApiTypes.OBJECT)
 class ProfileView(APIView):
     def get(self, request):
         user = request.user
@@ -93,6 +97,7 @@ class ProfileView(APIView):
         return self.get(request)
 
 
+@extend_schema(request=OpenApiTypes.OBJECT, responses=OpenApiTypes.OBJECT)
 class PasswordView(APIView):
     def post(self, request):
         if not request.user.check_password(str(request.data.get('current_password', ''))):
@@ -111,6 +116,7 @@ class PasswordView(APIView):
         return Response({'success': True})
 
 
+@extend_schema(request=OpenApiTypes.OBJECT, responses=OpenApiTypes.OBJECT)
 class StudentImportView(APIView):
     parser_classes = [MultiPartParser, FormParser]
 
@@ -134,7 +140,10 @@ class StudentImportView(APIView):
                     raise ValidationError('حداکثر ۱۰۰۰ دانشجو در هر ورود مجاز است.')
                 student = row.get('student_number', '')
                 error = None
-                if not student or not student.isascii() or not student.isalnum() or len(student) > 30:
+                if set(row) != required:
+                    error = 'تعداد ستون‌های ردیف معتبر نیست.'
+                    row = {key: row.get(key, '') for key in required}
+                elif not student or not student.isascii() or not student.isalnum() or len(student) > 30:
                     error = 'شماره دانشجویی معتبر نیست.'
                 elif student in seen or User.objects.filter(username=student).exists() or Profile.objects.filter(student_number=student).exists():
                     error = 'شماره دانشجویی تکراری است.'
@@ -156,6 +165,7 @@ class StudentImportView(APIView):
         return Response({'id': batch.pk, 'rows': rows[:20], 'total': len(rows), 'errors': errors, 'can_commit': bool(rows) and not errors}, status=201)
 
 
+@extend_schema(request=None, responses=OpenApiTypes.OBJECT)
 class StudentImportCommitView(APIView):
     @transaction.atomic
     def post(self, request, pk):
