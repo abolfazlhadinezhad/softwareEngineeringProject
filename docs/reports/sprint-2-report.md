@@ -13,7 +13,7 @@ Updated 2026-11-28. Both PDFs read completely. Current evidence supersedes the e
 | Caching strategy | architecture cache section | Public 60s cache/fallback/invalidation; private query isolation |
 | Source code | backend/frontend/runtime configuration | Real forms/endpoints, no fake dashboard statistics |
 | Working prototype | public/student/staff/manager/admin vertical slices | Four Chromium workflows through real services |
-| Automated tests | backend/API/security/SLA/form/import; React unit; E2E | 31 MySQL + 8 frontend + 4 browser passed |
+| Automated tests | backend/API/security/SLA/form/import; React unit; E2E | 32 MySQL + 8 frontend + 4 browser passed |
 | README and report | README, implementation-2026-11-28.md, backlog | Run/deploy/test/status/limitations recorded |
 
 No actual team roster/contribution allocation or course submission claim is fabricated. All requested production features are not complete. Git integration/push and hosted CI observations are recorded in the implementation report after execution. Deployment credentials/university policies remain external dependencies. Local successful checks do not imply a successful hosted CI run.

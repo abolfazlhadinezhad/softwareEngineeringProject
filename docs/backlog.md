@@ -11,7 +11,7 @@ Updated 2026-11-28. Full master scope remains the target; this session delivers 
 | Manual assignment/transfer/internal notes | Verified core | ticketing/services.py; TicketDetailPage | Conflicting claim, history/scope transfer, note privacy | 36e3b42, 328f81f | Auto-assignment, collaboration tasks, templates absent |
 | Public Persian help/directory/notices | Core verified | portal/search.py/views.py; PublicPages.jsx | API search/publication and mobile browser | 96df33f, 7cf02ca | Article/FAQ feedback, scheduling/moderation/search analytics incomplete |
 | Redis/Celery/Beat/Nginx | Verified development | Compose; config/celery.py; portal/tasks.py; nginx | Build/up/health/ping and scheduled tasks observed | 8b4deb7, 7b698fa | Full production operational hardening pending |
-| Secure activation/password/profile | Core verified | portal/identity.py; accounts; AccountPages/LoginPage | CSRF/token expiry/reuse/password tests | 447b7eb, d6f8d58 | MFA/reauth/reset/session management required before real enrollment |
+| Secure activation/password/profile | Core verified | portal/identity.py; accounts; AccountPages/LoginPage | CSRF/token reuse/password tests | 447b7eb, d6f8d58 | MFA/reauth/reset/session management required before real enrollment |
 | Student import preview/commit | CSV verified | identity.py; ImportBatch; AccountPages | Preview/duplicate/atomic/idempotency tests | 447b7eb, 45e7ef1 | XLSX/import purge and complete account management absent |
 | Versioned dynamic forms | Core verified | portal/forms.py; RequestForm; DynamicFields; wizard; form builder | Backend snapshots/conditional requirements + frontend + browser | 36e3b42, 328f81f, d6f8d58 | File/read-only student fields, immutable form-version rows/richer builder pending |
 | Business-hour SLA and monitoring | Core verified | portal/sla.py/tasks.py; calendar/policy models | Weekend/holiday/after-hour, duplicate alerts/closure tests | 36e3b42, 8b4deb7, 45e7ef1 | Configurable multilevel escalation, escalation review UI and all pause cases incomplete |
@@ -23,7 +23,7 @@ Updated 2026-11-28. Full master scope remains the target; this session delivers 
 | Dependency/code quality/CI | Locally verified; hosted status separate | pinned requirements/package-lock, Ruff/ESLint/Prettier, ci.yml | Ruff/npm audit/pip-audit pass; DRF patched | 7b698fa | Hosted run must be observed; full secret/container/security scan pending |
 | Production/backup/recovery | Config implemented; externally unverified | prod Compose/TLS configs; backup/restore scripts/docs | Compose config and frontend image/nginx validated | 76557d6, 75514e8 | Full TLS stack, backup/isolated restore drill not executed |
 | Proposal/sprints/API/ERD/security docs | Updated | docs; README | Matches milestone, historical contradictions superseded | f492caa, 4a2ee6b, 955ea79 | Full wireframe refresh, all proposed doc filenames/coverage not complete |
-| Git integration/push | See final report addendum | Git refs; implementation report | To record after actual push | Current Git history | No force push/history rewrite/destructive reset |
+| Git integration/push | Merged and pushed | Git refs; implementation report | Feature c56f8c9 and merge bc0fa1c pushed; both hosted CI runs succeeded | bc0fa1c, ff7a974 maintenance follow-up | Later commits trigger their own CI; no force push/history rewrite/destructive reset |
 
 ## Exact next implementation tasks
 
