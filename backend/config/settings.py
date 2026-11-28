@@ -87,3 +87,5 @@ CELERY_TASK_TIME_LIMIT = 120
 CELERY_TASK_SOFT_TIME_LIMIT = 100
 CELERY_BEAT_SCHEDULE = {'monitor-service-levels': {'task': 'apps.portal.tasks.monitor_service_levels', 'schedule': 60.0}}
 DATA_UPLOAD_MAX_MEMORY_SIZE = 2 * 1024 * 1024
+MEDIA_ROOT = Path(os.environ.get('PRIVATE_MEDIA_ROOT', '/app/private-media'))
+AUTH_PASSWORD_VALIDATORS[1]['OPTIONS'] = {'min_length': 10}

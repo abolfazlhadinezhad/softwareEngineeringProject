@@ -114,3 +114,14 @@ class InternalNote(models.Model):
 
     class Meta:
         ordering = ['created_at', 'id']
+
+
+class TicketAttachment(models.Model):
+    ticket = models.ForeignKey(Ticket, on_delete=models.PROTECT, related_name='attachments')
+    uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    file = models.FileField(upload_to='tickets/%Y/%m/')
+    original_name = models.CharField(max_length=160)
+    content_type = models.CharField(max_length=60)
+    sha256 = models.CharField(max_length=64)
+    size = models.PositiveIntegerField()
+    created_at = models.DateTimeField(auto_now_add=True)

@@ -1,6 +1,9 @@
 from django.contrib.auth import get_user_model
 from django.db import connection
 from django.test import TestCase
+from django.test import override_settings
+from django.core.files.uploadedfile import SimpleUploadedFile
+import tempfile
 from rest_framework.test import APIClient
 
 from .models import Category, Ticket, TicketEvent
@@ -130,6 +133,23 @@ class TicketApiTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['department'], target.pk)
         self.assertGreaterEqual(len(response.data['events']), 2)
+
+    def test_private_attachment_checks_content_and_download_ownership(self):
+        with tempfile.TemporaryDirectory() as media_root, override_settings(MEDIA_ROOT=media_root):
+            ticket_id = self.create().data['id']
+            upload_path = f'/api/v1/tickets/{ticket_id}/attachments/'
+            bad = SimpleUploadedFile('bad.pdf', b'not-a-pdf', content_type='application/pdf')
+            self.assertEqual(self.client.post(upload_path, {'file': bad}, format='multipart').status_code, 400)
+            good = SimpleUploadedFile('test.pdf', b'%PDF-1.7\nSynthetic test document', content_type='application/pdf')
+            result = self.client.post(upload_path, {'file': good}, format='multipart')
+            self.assertEqual(result.status_code, 201, result.data)
+            download = f"{upload_path}{result.data['id']}/"
+            response = self.client.get(download)
+            self.assertEqual(response.status_code, 200)
+            response.close()
+            self.login(self.other_student)
+            self.assertEqual(self.client.get(download).status_code, 404)
+            self.assertEqual(self.client.post(upload_path, {'file': SimpleUploadedFile('x.pdf', b'%PDF-1.7', content_type='application/pdf')}, format='multipart').status_code, 404)
 
     def test_student_cannot_mutate_staff_status_or_other_ticket(self):
         created = self.create()

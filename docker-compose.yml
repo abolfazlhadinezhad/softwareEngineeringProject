@@ -10,6 +10,7 @@ x-backend: &backend
     CELERY_BROKER_URL: redis://redis:6379/0
   volumes:
     - ./backend:/app
+    - private_media:/app/private-media
 
 services:
   redis:
@@ -128,3 +129,4 @@ volumes:
   mysql_data:
   frontend_modules:
   redis_data:
+  private_media:

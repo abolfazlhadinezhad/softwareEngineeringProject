@@ -5,6 +5,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends build-essential
 COPY requirements.txt ./
 RUN pip install --index-url https://pypi.org/simple -r requirements.txt
 RUN useradd --create-home app
+RUN mkdir -p /app/private-media /app/staticfiles && chown -R app:app /app/private-media /app/staticfiles
 COPY --chown=app:app . .
 USER app
 EXPOSE 8000

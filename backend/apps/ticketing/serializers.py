@@ -67,6 +67,11 @@ class TicketDetailSerializer(TicketListSerializer):
     events = serializers.SerializerMethodField()
     internal_notes = serializers.SerializerMethodField()
     allowed_actions = serializers.SerializerMethodField()
+    attachments = serializers.SerializerMethodField()
+
+    @extend_schema_field(OpenApiTypes.OBJECT)
+    def get_attachments(self, obj):
+        return list(obj.attachments.values('id', 'original_name', 'size', 'created_at'))
 
     @extend_schema_field(OpenApiTypes.OBJECT)
     def get_allowed_actions(self, obj):
@@ -92,7 +97,7 @@ class TicketDetailSerializer(TicketListSerializer):
         return list(obj.internal_notes.values('id', 'body', 'author__username', 'created_at'))
 
     class Meta(TicketListSerializer.Meta):
-        fields = TicketListSerializer.Meta.fields + ['description', 'replies', 'events', 'internal_notes', 'allowed_actions', 'form_snapshot', 'form_responses', 'resolution_summary']
+        fields = TicketListSerializer.Meta.fields + ['description', 'replies', 'events', 'internal_notes', 'allowed_actions', 'form_snapshot', 'form_responses', 'resolution_summary', 'attachments']
 
 
 class TicketCreateSerializer(serializers.Serializer):
