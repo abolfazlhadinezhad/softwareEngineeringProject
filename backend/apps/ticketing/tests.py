@@ -94,6 +94,17 @@ class TicketApiTests(TestCase):
         self.login(outsider)
         self.assertEqual(self.client.get('/api/tickets/').data['count'], 0)
         self.assertEqual(self.client.get(f'/api/tickets/{ticket_id}/').status_code, 404)
+
+    def test_maintenance_admin_cannot_bypass_confidentiality_or_lifecycle(self):
+        ticket_id = self.create(title='PRIVATE-MAINTENANCE-TEST').data['id']
+        self.login(self.admin)
+        self.assertEqual(self.client.post(f'/admin/ticketing/ticket/{ticket_id}/change/', {'status': 'closed'}).status_code, 403)
+        ticket = Ticket.objects.get(pk=ticket_id)
+        self.assertEqual(ticket.status, 'open')
+        Ticket.objects.filter(pk=ticket_id).update(confidentiality='confidential')
+        response = self.client.get('/admin/ticketing/ticket/')
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn('PRIVATE-MAINTENANCE-TEST', response.content.decode())
         Ticket.objects.filter(pk=ticket_id).update(confidentiality='confidential')
         self.login(self.admin)
         self.assertEqual(self.client.get(f'/api/tickets/{ticket_id}/').status_code, 404)
