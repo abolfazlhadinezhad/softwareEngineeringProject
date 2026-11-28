@@ -1,0 +1,5 @@
+# Functional requirements and status
+
+The 2026-11-28 master request defines the complete product target. The milestone implements public help, secure session login/activation, department-scoped ticket handling, dynamic forms, private attachments, core SLA monitoring, notifications/feedback, basic reports and custom React configuration. Detailed requirement-to-file/test mapping and all remaining gaps are maintained in [traceability-matrix.md](traceability-matrix.md) and [backlog.md](../backlog.md), which supersede the earlier minimal-scope exclusions.
+
+Acceptance is behavioral: students only access own tickets/files; staff operate only in authorized departments; confidential access is explicit; internal notes never enter student data; state changes follow the service state machine; transfers preserve history/deadlines and can revoke source access; configuration changes use real APIs/MySQL; public search excludes unpublished/restricted content; imports preview before atomic commit; activation tokens expire and cannot be reused; alerts are idempotent. All wider master criteria remain required backlog until evidenced.
