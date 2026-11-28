@@ -72,3 +72,18 @@ SECURE_HSTS_PRELOAD = not DEBUG
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
 CSRF_FAILURE_VIEW = 'config.errors.csrf_failure'
+
+CACHES = {'default': {
+    'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+    'LOCATION': os.environ.get('REDIS_URL', 'redis://redis:6379/1'),
+    'KEY_PREFIX': 'bnut',
+    'OPTIONS': {'socket_connect_timeout': 2, 'socket_timeout': 2},
+}}
+CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://redis:6379/0')
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TIMEZONE = 'UTC'
+CELERY_TASK_TIME_LIMIT = 120
+CELERY_TASK_SOFT_TIME_LIMIT = 100
+CELERY_BEAT_SCHEDULE = {'monitor-service-levels': {'task': 'apps.portal.tasks.monitor_service_levels', 'schedule': 60.0}}
+DATA_UPLOAD_MAX_MEMORY_SIZE = 2 * 1024 * 1024
