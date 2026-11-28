@@ -16,10 +16,10 @@ class AccountAdmin(UserAdmin):
     add_fieldsets = UserAdmin.add_fieldsets + (('Role', {'fields': ('role',)}),)
 
     def has_module_permission(self, request):
-        return request.user.role == User.Role.ADMIN
+        return request.user.is_authenticated and request.user.role == User.Role.ADMIN
 
     def has_view_permission(self, request, obj=None):
-        return request.user.role == User.Role.ADMIN
+        return request.user.is_authenticated and request.user.role == User.Role.ADMIN
 
     has_add_permission = has_view_permission
     has_change_permission = has_view_permission

@@ -2,7 +2,10 @@ from django.contrib.auth import get_user_model
 from django.db import connection
 from django.test import TestCase
 from django.core.cache import cache
+from django.core.management import call_command
+from django.core.management.base import CommandError
 from rest_framework.test import APIClient
+from unittest.mock import patch
 
 User = get_user_model()
 
@@ -68,3 +71,15 @@ class AuthenticationTests(TestCase):
         self.user.save()
         self.client.force_login(self.user)
         self.assertEqual(self.client.get('/admin/').status_code, 302)
+
+
+class BrowserSeedSafetyTests(TestCase):
+    @patch.dict('os.environ', {'DJANGO_DEBUG': 'false', 'E2E_TEST_PASSWORD': 'test-only-random-secret'})
+    def test_browser_seed_is_refused_outside_debug_mode(self):
+        with self.assertRaisesMessage(CommandError, 'only when DJANGO_DEBUG=true'):
+            call_command('seed_e2e_data')
+
+    @patch.dict('os.environ', {'DJANGO_DEBUG': 'true', 'E2E_TEST_PASSWORD': 'short'})
+    def test_browser_seed_requires_a_strong_local_password(self):
+        with self.assertRaisesMessage(CommandError, 'at least 16 characters'):
+            call_command('seed_e2e_data')

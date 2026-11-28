@@ -1,0 +1,5 @@
+# Non-functional requirements
+
+Required: Docker-only runtime development; MySQL 8.0 and ORM migrations; Persian RTL/mobile-first student/public flows; UTC persistence/Tehran business calendars; backend object/scoped permissions; secure session cookies/CSRF; private files; audit trails; maintainable modular monolith/services; paginated lists; bounded inputs; purposeful caching; real recorded metrics; pinned dependencies and executed tests; granular Git integration; documentation consistent with source.
+
+Implemented controls and measured test evidence are in security/architecture/testing documents. No invented throughput, availability, SLA compliance, WCAG certification or privacy-law compliance target is reported as achieved. Production requires approved RPO/RTO, retention, operational service calendars, institutional identity policy, incident response, accessibility and load testing. Resource limits must follow measurements. Current APIs lack full enterprise-scale optimized search/report aggregation; department permission lookup can be optimized after representative workload tests.

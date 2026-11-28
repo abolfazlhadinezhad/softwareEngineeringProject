@@ -9,7 +9,7 @@ Reviewed: November 26, 2026 (Asia/Tehran). All 18 PDF pages were read as extract
 | S1 | `__اسپرینت_اول_پروژه_مهندسی_نرم_افزار_4051_.pdf` | 6 | `89720bc60f1a226f261e9a30f8a0ee5a3cce94ecc4f6195252328a4422e68803` |
 | S2 | `__مستندات_اسپرینت_دوم_پروژه_مهندسی_نرم_افزار_.pdf` | 12 | `6474d38ae49c29243c028b85d2f2dcf001d28b8cf829a22cac799a41e29a2fbd` |
 
-These are university assignment guidelines, not an approved application specification. The user's implementation request supplies stricter engineering constraints. Subsequent answers identify a **ticketing system for students at a specific university**, handled by **university support staff and an administrator**. The user delegated remaining scope choices; [scope](scope.md) distinguishes those decisions from supplied facts. The university name and actual team metadata remain unavailable.
+These are university assignment guidelines, not an approved application specification. The 2026-11-28 master request supplies BNUT identity and a much broader platform scope. Both source PDFs were independently re-extracted and read completely in this session; the page findings below remain valid. Team metadata and the applicable course deadline remain unavailable. Current implementation scope is tracked in [traceability-matrix.md](traceability-matrix.md).
 
 ## Sprint 1: page-by-page findings
 
@@ -62,8 +62,8 @@ Use these headings when drafting the actual proposal after the business scope is
 - The user's required stack is Python/Django/DRF, React **JavaScript**, MySQL **8.0**, Docker/Compose, and Git/GitHub. Do not substitute PostgreSQL, SQLite, TypeScript, or another framework from the examples.
 - Prefer a modular monolith; define domain modules only after confirming responsibilities and workflows.
 - Docker is mandatory, even though optional in S2. All application dependencies and tests run in containers; PDF inspection tools are document-analysis utilities, not application runtime dependencies.
-- A no-Redis decision is permissible only with an explained, domain-aware caching strategy. No cache-sensitive business rules have been confirmed yet.
-- The university name, team roster, student IDs, deadlines, domain references, role permissions, and business rules must not be invented.
+- Redis is mandatory in the current master request; see the implemented bounded public cache/task strategy in architecture.
+- BNUT identity is supplied. Team roster, student IDs, deadlines, official departments/integrations and institutional approvals must not be invented.
 - A health endpoint or infrastructure status page cannot satisfy the real core-feature requirement.
 
 See [traceability](traceability.md) and [open questions](open-questions.md).

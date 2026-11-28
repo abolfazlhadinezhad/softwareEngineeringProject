@@ -13,7 +13,7 @@ CSRF_TRUSTED_ORIGINS = os.environ.get('DJANGO_CSRF_TRUSTED_ORIGINS', '').split('
 INSTALLED_APPS = [
     'django.contrib.admin', 'django.contrib.auth', 'django.contrib.contenttypes',
     'django.contrib.sessions', 'django.contrib.messages', 'django.contrib.staticfiles',
-    'rest_framework', 'drf_spectacular', 'django_filters', 'apps.accounts', 'apps.ticketing',
+    'rest_framework', 'drf_spectacular', 'django_filters', 'apps.accounts', 'apps.ticketing', 'apps.portal',
 ]
 MIDDLEWARE = [
     'config.middleware.NoStoreMiddleware',
@@ -72,3 +72,23 @@ SECURE_HSTS_PRELOAD = not DEBUG
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
 CSRF_FAILURE_VIEW = 'config.errors.csrf_failure'
+
+CACHES = {'default': {
+    'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+    'LOCATION': os.environ.get('REDIS_URL', 'redis://redis:6379/1'),
+    'KEY_PREFIX': 'bnut',
+    'OPTIONS': {'socket_connect_timeout': 2, 'socket_timeout': 2},
+}}
+CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://redis:6379/0')
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TIMEZONE = 'UTC'
+CELERY_TASK_TIME_LIMIT = 120
+CELERY_TASK_SOFT_TIME_LIMIT = 100
+CELERY_BEAT_SCHEDULE = {'monitor-service-levels': {'task': 'apps.portal.tasks.monitor_service_levels', 'schedule': 60.0}}
+DATA_UPLOAD_MAX_MEMORY_SIZE = 2 * 1024 * 1024
+MEDIA_ROOT = Path(os.environ.get('PRIVATE_MEDIA_ROOT', '/app/private-media'))
+AUTH_PASSWORD_VALIDATORS[1]['OPTIONS'] = {'min_length': 10}
+if os.environ.get('TRUST_PROXY_TLS', '').lower() == 'true':
+    # Enable only when Gunicorn is reachable exclusively through the trusted gateway.
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')

@@ -14,7 +14,23 @@ def health(request):
     return JsonResponse({'status': 'ok'})
 
 
+def liveness(request):
+    return JsonResponse({'status': 'ok'})
+
+
+def readiness(request):
+    from apps.portal.operations import service_status
+    status = service_status()
+    ready = status['database'] and status['redis']
+    return JsonResponse({'status': 'ready' if ready else 'unavailable'}, status=200 if ready else 503)
+
+
 urlpatterns = [
+    path('api/v1/health/live/', liveness),
+    path('api/v1/health/ready/', readiness),
+    path('api/v1/auth/', include('apps.accounts.urls')),
+    path('api/v1/', include('apps.portal.urls')),
+    path('api/v1/', include('apps.ticketing.urls')),
     path('api/auth/', include('apps.accounts.urls')),
     path('api/', include('apps.ticketing.urls')),
     path('admin/', admin.site.urls),

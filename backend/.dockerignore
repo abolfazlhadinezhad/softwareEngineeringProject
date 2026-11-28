@@ -5,3 +5,7 @@ __pycache__
 .coverage
 htmlcov
 artifacts
+private-media/
+staticfiles/
+*.sql
+*.tar.gz
