@@ -1,4 +1,4 @@
-from django.db.models import Count, Q
+from django.db.models import Count
 from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
@@ -10,7 +10,6 @@ from django_filters.rest_framework import DjangoFilterBackend
 
 from .filters import TicketFilter
 from .models import Category, Ticket
-from .permissions import IsSupportOrAdmin
 from .serializers import CategorySerializer, ReplyCreateSerializer, ReplySerializer, StatusSerializer, TicketCreateSerializer, TicketDetailSerializer, TicketListSerializer
 from .services import add_reply, change_status, claim_ticket, create_ticket, release_ticket, student_close, student_reopen, visible_tickets
 
@@ -29,6 +28,7 @@ class CategoryListView(APIView):
 )
 class TicketViewSet(viewsets.GenericViewSet):
     permission_classes = [IsAuthenticated]
+    queryset = Ticket.objects.none()
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = TicketFilter
     search_fields = ['title', 'description']
@@ -36,6 +36,8 @@ class TicketViewSet(viewsets.GenericViewSet):
     ordering = ['-updated_at', '-id']
 
     def get_queryset(self):
+        if not self.request.user.is_authenticated:
+            return self.queryset
         queryset = visible_tickets(self.request.user)
         if self.action == 'retrieve':
             return queryset.prefetch_related('replies__author', 'events__actor')

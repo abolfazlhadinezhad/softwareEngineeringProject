@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from drf_spectacular.utils import OpenApiTypes, extend_schema_field
 
 from .models import Category, Reply, Ticket, TicketEvent
 
@@ -18,6 +19,7 @@ class ReplySerializer(serializers.ModelSerializer):
         fields = ['id', 'author', 'body', 'created_at']
         read_only_fields = ['id', 'author', 'created_at']
 
+    @extend_schema_field(OpenApiTypes.OBJECT)
     def get_author(self, obj):
         return {'id': obj.author_id, 'username': obj.author.username, 'role': obj.author.role}
 
@@ -30,6 +32,7 @@ class TicketEventSerializer(serializers.ModelSerializer):
         fields = ['id', 'action', 'detail', 'actor', 'created_at']
         read_only_fields = fields
 
+    @extend_schema_field(OpenApiTypes.OBJECT)
     def get_actor(self, obj):
         return {'id': obj.actor_id, 'username': obj.actor.username} if obj.actor else None
 
@@ -44,9 +47,11 @@ class TicketListSerializer(serializers.ModelSerializer):
         fields = ['id', 'title', 'status', 'priority', 'category', 'created_by', 'assignee', 'created_at', 'updated_at']
         read_only_fields = fields
 
+    @extend_schema_field(OpenApiTypes.OBJECT)
     def get_created_by(self, obj):
         return {'id': obj.created_by_id, 'username': obj.created_by.username}
 
+    @extend_schema_field(OpenApiTypes.OBJECT)
     def get_assignee(self, obj):
         return {'id': obj.assignee_id, 'username': obj.assignee.username} if obj.assignee else None
 

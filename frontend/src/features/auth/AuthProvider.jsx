@@ -10,7 +10,16 @@ export function AuthProvider({ children }) {
   const session = useQuery({ queryKey: ['session'], retry: false, refetchInterval: 60000, queryFn: async () => {
     try { return await api('/auth/me/'); } catch (error) { if (error.status === 403) { client.removeQueries({ predicate: q => q.queryKey[0] !== 'session' }); return null; } throw error; }
   } });
-  const signIn = async (credentials) => { const user = await api('/auth/login/', { method: 'POST', body: credentials }); client.clear(); client.setQueryData(['session'], user); return user; };
-  const signOut = async () => { await api('/auth/logout/', { method: 'POST' }); client.clear(); client.setQueryData(['session'], null); };
+  const signIn = async (credentials) => {
+    const user = await api('/auth/login/', { method: 'POST', body: credentials });
+    client.removeQueries({ predicate: query => query.queryKey[0] !== 'session' });
+    client.setQueryData(['session'], user);
+    return user;
+  };
+  const signOut = async () => {
+    await api('/auth/logout/', { method: 'POST' });
+    client.removeQueries({ predicate: query => query.queryKey[0] !== 'session' });
+    client.setQueryData(['session'], null);
+  };
   return <AuthContext.Provider value={{ user: session.data, isLoading: session.isPending, error: session.error, retry: session.refetch, signIn, signOut }}>{children}</AuthContext.Provider>;
 }
