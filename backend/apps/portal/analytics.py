@@ -1,7 +1,7 @@
 from statistics import mean, median
 
 from django.contrib.auth import get_user_model
-from django.db.models import Avg, Count, F
+from django.db.models import Avg, Count
 from django.utils import timezone
 from rest_framework.response import Response
 from rest_framework.views import APIView

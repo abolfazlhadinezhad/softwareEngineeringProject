@@ -4,7 +4,7 @@ import io
 import secrets
 from datetime import timedelta
 
-from django.contrib.auth import get_user_model, logout, update_session_auth_hash
+from django.contrib.auth import get_user_model, update_session_auth_hash
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.validators import validate_email

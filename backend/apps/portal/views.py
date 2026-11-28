@@ -1,13 +1,13 @@
-﻿import hashlib
+﻿
 
 from django.core.cache import cache
 from django.db import transaction
-from django.db.models import Count, F, Q
+from django.db.models import F, Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import serializers, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -209,5 +209,6 @@ class AuditView(APIView):
         pager = PageNumberPagination()
         records = pager.paginate_queryset(AuditLog.objects.all(), request)
         return pager.get_paginated_response([{'id': row.pk, 'actor': row.actor_id, 'action': row.action, 'resource': row.resource, 'department': row.department_id, 'created_at': row.created_at, 'correlation_id': row.correlation_id} for row in records])
+
 
 

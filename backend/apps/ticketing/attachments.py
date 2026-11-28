@@ -54,3 +54,12 @@ class AttachmentView(APIView):
         response = FileResponse(attachment.file.open('rb'), as_attachment=True, filename=attachment.original_name, content_type=attachment.content_type)
         response['X-Content-Type-Options'] = 'nosniff'
         return response
+
+
+class UploadAttachmentView(AttachmentView):
+    http_method_names = ['post', 'options']
+
+
+@extend_schema(request=None, responses=OpenApiTypes.BINARY)
+class DownloadAttachmentView(AttachmentView):
+    http_method_names = ['get', 'head', 'options']
