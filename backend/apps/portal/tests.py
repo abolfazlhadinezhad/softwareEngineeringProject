@@ -15,6 +15,7 @@ from .search import normalize
 from .sla import add_business_minutes, business_minutes_between
 from .identity import issue_activation
 from .models import Activation, Profile
+from datetime import timedelta
 
 
 class PublicContentTests(TestCase):
@@ -43,6 +44,9 @@ class PublicContentTests(TestCase):
     def test_admin_creates_department_and_category_without_source_changes(self):
         admin = get_user_model().objects.create_superuser('admin')
         self.client.force_authenticate(admin)
+        metadata = self.client.get('/api/v1/manage/departments/form-metadata/')
+        self.assertEqual(metadata.status_code, 200, metadata.data)
+        self.assertIn('name', metadata.data['actions']['POST'])
         response = self.client.post('/api/v1/manage/departments/', {'name': 'واحد جدید', 'slug': 'new-unit'}, format='json')
         self.assertEqual(response.status_code, 201, response.data)
         pk = response.data['id']
@@ -123,3 +127,26 @@ class ActivationAndImportTests(TestCase):
         self.assertEqual(len(response.data['errors']), 1)
         self.assertEqual(self.client.post(f"/api/v1/manage/student-imports/{response.data['id']}/commit/").status_code, 400)
         self.assertFalse(get_user_model().objects.filter(username='DEMO1').exists())
+
+
+class ScheduledWorkflowTests(TestCase):
+    def test_monitor_is_idempotent_and_closes_only_expired_resolutions(self):
+        from apps.ticketing.models import Category, Ticket
+        from .models import Escalation, Membership, Notification, SLAPolicy
+        from .tasks import monitor_service_levels
+        user = get_user_model().objects.create_user('synthetic')
+        manager = get_user_model().objects.create_user('manager', role='support')
+        department = Department.objects.create(name='واحد پایش', slug='monitor')
+        Membership.objects.create(user=manager, department=department, is_manager=True)
+        calendar = BusinessCalendar.objects.create(name='کاری', weekdays=[0,1,2,3,4,5,6])
+        policy = SLAPolicy.objects.create(name='تست', calendar=calendar)
+        category = Category.objects.create(name='پایش', department=department, sla_policy=policy)
+        ticket = Ticket.objects.create(created_by=user, category=category, department=department, title='Overdue', description='Synthetic', response_due_at=timezone.now() - timedelta(minutes=5))
+        expired = Ticket.objects.create(created_by=user, category=category, department=department, title='Expired', description='Synthetic', status='resolved', resolved_at=timezone.now() - timedelta(days=8))
+        monitor_service_levels()
+        monitor_service_levels()
+        self.assertEqual(Escalation.objects.filter(ticket=ticket).count(), 1)
+        self.assertEqual(Notification.objects.filter(user=manager, ticket=ticket).count(), 1)
+        expired.refresh_from_db()
+        self.assertEqual(expired.status, 'closed')
+        self.assertEqual(expired.events.filter(action='closed').count(), 1)

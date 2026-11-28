@@ -146,7 +146,7 @@ class TicketApiTests(TestCase):
             download = f"{upload_path}{result.data['id']}/"
             response = self.client.get(download)
             self.assertEqual(response.status_code, 200)
-            response.close()
+            self.assertTrue(b''.join(response.streaming_content).startswith(b'%PDF-'))
             self.login(self.other_student)
             self.assertEqual(self.client.get(download).status_code, 404)
             self.assertEqual(self.client.post(upload_path, {'file': SimpleUploadedFile('x.pdf', b'%PDF-1.7', content_type='application/pdf')}, format='multipart').status_code, 404)
