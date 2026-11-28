@@ -1,60 +1,67 @@
-name: CI
-
+﻿name: CI
 on:
   push:
-    branches: [main, '**']
+    branches: ['**']
   pull_request:
+permissions:
+  contents: read
 
 jobs:
-  backend:
+  integration:
     runs-on: ubuntu-latest
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_DATABASE: university_support
-          MYSQL_USER: support_app
-          MYSQL_PASSWORD: ci-database-password
-          MYSQL_ROOT_PASSWORD: ci-root-password
-        ports: ['3306:3306']
-        options: >-
-          --health-cmd="mysqladmin ping -h 127.0.0.1 -u root -pci-root-password"
-          --health-interval=5s --health-timeout=5s --health-retries=30
-    defaults:
-      run:
-        working-directory: backend
+    timeout-minutes: 25
     env:
-      DJANGO_SECRET_KEY: ci-only-secret-that-is-long-enough-for-tests
-      DJANGO_DEBUG: 'true'
-      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1
+      COMPOSE_PROJECT_NAME: university-support-ci
       MYSQL_DATABASE: university_support
       MYSQL_USER: support_app
-      MYSQL_PASSWORD: ci-database-password
-      MYSQL_HOST: 127.0.0.1
-      MYSQL_PORT: '3306'
+      MYSQL_PASSWORD: ci-only-database-password
+      MYSQL_ROOT_PASSWORD: ci-only-root-password
+      DJANGO_SECRET_KEY: ci-only-random-secret-at-least-thirty-two-characters
+      DJANGO_DEBUG: 'true'
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,backend,frontend
+      DJANGO_CSRF_TRUSTED_ORIGINS: http://localhost:5173,http://127.0.0.1:5173,http://localhost:8080
+      E2E_TEST_PASSWORD: ci-only-browser-secret-512-synthetic-data
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Prepare disposable environment
+        run: |
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          lines = []
+          for line in Path('.env.example').read_text().splitlines():
+              if line and not line.startswith('#') and '=' in line:
+                  key, default = line.split('=', 1)
+                  lines.append(key + '=' + os.environ.get(key, default))
+          lines.append('E2E_TEST_PASSWORD=' + os.environ['E2E_TEST_PASSWORD'])
+          Path('.env').write_text('\n'.join(lines) + '\n')
+          PY
+      - run: docker compose up -d --build --wait
+      - run: docker compose exec -T backend python manage.py check
+      - run: docker compose exec -T backend python manage.py makemigrations --check --dry-run
+      - run: docker compose exec -T backend python manage.py test --noinput
+      - run: docker compose exec -T backend python manage.py spectacular --validate --file /tmp/schema.yml
+      - run: docker compose exec -T frontend npm run lint
+      - run: docker compose exec -T frontend npm test
+      - run: docker compose exec -T frontend npm run build
+      - run: docker compose exec -T frontend npm audit --audit-level=high
+      - run: docker compose exec -T backend python manage.py seed_e2e_data
+      - run: docker run --rm --init --ipc=host --network university-support-ci_default --volumes-from university-support-ci-frontend-1 -w /app -e PLAYWRIGHT_BASE_URL=http://frontend:5173 -e E2E_TEST_PASSWORD mcr.microsoft.com/playwright:v1.65.1-noble npm run test:e2e
+      - run: docker build --target production -t bnut-frontend-check ./frontend
+      - run: docker run --rm bnut-frontend-check nginx -t
+      - if: always()
+        run: docker compose logs --no-color --tail=100 backend celery-worker celery-beat nginx
+      - if: always()
+        uses: actions/upload-artifact@v4
         with:
-          python-version: '3.12'
-      - run: pip install --index-url https://pypi.org/simple -r requirements.txt
-      - run: python manage.py migrate --noinput
-      - run: python manage.py check
-      - run: python manage.py test --noinput
-      - run: python manage.py spectacular --validate --file /tmp/schema.yml
+          name: browser-results
+          path: frontend/test-results
+      - if: always()
+        run: docker compose down
 
-  frontend:
+  python-quality:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-      - run: npm ci --no-audit --no-fund
-      - run: npm test
-      - run: npm run build
+      - run: docker run --rm -v "$GITHUB_WORKSPACE/backend:/src" python:3.12-slim sh -c 'pip install -q -r /src/requirements-quality.txt && ruff check /src && pip-audit -r /src/requirements.txt --disable-pip --no-deps'
+
